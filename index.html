@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>海外产品增长诊断</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* 布局：左侧窄标签列 + 右侧正文，案例之间用细线分隔；图表与结论成对出现 */
+:root {
+  color-scheme: light;
+  --bg: #f5f7f9;
+  --surface: #fcfcfb;
+  --ink: #12161b;
+  --ink-2: #4a5059;
+  --ink-3: #7a808a;
+  --line: #dde2e8;
+  --accent: #2a78d6;
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --good: #0ca30c;
+  --crit: #d03b3b;
+  --code-bg: #eef1f5;
+  --font-display: "Noto Serif SC", "Songti SC", serif;
+  --font-body: "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --seq-0: #eef4fc; --seq-1: #cde2fb; --seq-2: #9ec5f4; --seq-3: #6da7ec; --seq-4: #3987e5; --seq-5: #256abf; --seq-6: #184f95;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #121417; --surface: #1a1a19; --ink: #eef0f2; --ink-2: #b9bec6; --ink-3: #8a9099; --line: #2e3238;
+    --accent: #5598e7; --s1: #3987e5; --s2: #d95926; --code-bg: #20242a;
+    --seq-0: #1d2633; --seq-1: #104281; --seq-2: #184f95; --seq-3: #1c5cab; --seq-4: #2a78d6; --seq-5: #5598e7; --seq-6: #9ec5f4;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121417; --surface: #1a1a19; --ink: #eef0f2; --ink-2: #b9bec6; --ink-3: #8a9099; --line: #2e3238;
+  --accent: #5598e7; --s1: #3987e5; --s2: #d95926; --code-bg: #20242a;
+  --seq-0: #1d2633; --seq-1: #104281; --seq-2: #184f95; --seq-3: #1c5cab; --seq-4: #2a78d6; --seq-5: #5598e7; --seq-6: #9ec5f4;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15.5px; line-height: 1.7; }
+a { color: var(--accent); }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+nav.top { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+nav.top .wrap { display: flex; gap: 20px; align-items: center; height: 48px; overflow-x: auto; white-space: nowrap; }
+nav.top .brand { font-weight: 600; font-size: 14px; margin-right: auto; }
+nav.top a { color: var(--ink-2); text-decoration: none; font-size: 14px; }
+nav.top a:hover, nav.top a:focus-visible { color: var(--ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+header.hero { padding: 48px 0 32px; border-bottom: 1px solid var(--line); }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .06em; color: var(--ink-3); text-transform: uppercase; }
+h1 { font-family: var(--font-display); font-size: clamp(28px, 4vw, 40px); line-height: 1.25; margin: 10px 0 14px; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-size: 26px; line-height: 1.3; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 17px; margin: 0 0 6px; font-weight: 600; text-wrap: balance; }
+.lede { max-width: 68ch; color: var(--ink-2); font-size: 16.5px; margin: 0; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 18px; font-size: 13.5px; color: var(--ink-3); }
+.meta b { color: var(--ink-2); font-weight: 500; }
+.verdicts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 26px; }
+.verdict { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.verdict .k { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-3); }
+.verdict .v { font-size: 15px; margin-top: 4px; }
+section.case { padding: 44px 0; border-bottom: 1px solid var(--line); }
+.case-head { display: grid; grid-template-columns: 200px 1fr; gap: 24px; margin-bottom: 24px; }
+.case-head .tag { font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); padding-top: 8px; }
+.case-head p { max-width: 70ch; color: var(--ink-2); margin: 6px 0 0; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 0 0 28px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.tile .n { font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.tile .l { font-size: 13px; color: var(--ink-2); }
+.finding { display: grid; grid-template-columns: 200px 1fr; gap: 24px; padding: 24px 0; border-top: 1px dashed var(--line); }
+.finding:first-of-type { border-top: 0; }
+.finding .num { font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); padding-top: 3px; }
+.finding .num strong { display: block; font-family: var(--font-body); font-size: 15px; color: var(--ink); margin-top: 4px; line-height: 1.45; font-weight: 600; }
+.finding .body > p { max-width: 70ch; margin: 0 0 12px; color: var(--ink-2); }
+.finding .body > p b { color: var(--ink); font-weight: 600; }
+.chart { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 14px 8px; margin: 6px 0 10px; position: relative; }
+.chart-title { font-size: 13.5px; font-weight: 600; margin: 0 0 2px; }
+.chart-sub { font-size: 12.5px; color: var(--ink-3); margin: 0 0 6px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; color: var(--ink-2); margin: 2px 0 4px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart svg text { fill: var(--ink-3); font-size: 11px; font-family: var(--font-body); }
+.chart svg text.val { fill: var(--ink-2); font-weight: 500; }
+.chart svg text.strong { fill: var(--ink); font-weight: 600; }
+.chart svg .grid { stroke: var(--line); stroke-width: 1; }
+.chart svg .axis { stroke: var(--ink-3); stroke-width: 1; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.note { font-size: 13px; color: var(--ink-3); max-width: 74ch; margin: 4px 0 0; }
+.callout { border-left: 3px solid var(--accent); background: var(--surface); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 10px 0; max-width: 74ch; font-size: 14.5px; color: var(--ink-2); }
+.callout b { color: var(--ink); }
+.pill { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--ink-2); white-space: nowrap; }
+.pill.good { border-color: color-mix(in srgb, var(--good) 50%, transparent); color: var(--good); }
+.pill.weak { border-color: color-mix(in srgb, var(--ink-3) 60%, transparent); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { font-weight: 500; color: var(--ink-3); font-size: 12.5px; }
+th button { all: unset; cursor: pointer; }
+th button:hover, th button:focus-visible { color: var(--ink); text-decoration: underline; }
+.scroll { overflow-x: auto; }
+.bar-in { display: inline-block; height: 8px; border-radius: 0 4px 4px 0; background: var(--s1); vertical-align: 0; margin-left: 6px; }
+.exps { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.exp { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+.exp h3 { font-size: 16px; }
+.exp dl { display: grid; grid-template-columns: 74px 1fr; gap: 4px 10px; margin: 10px 0 0; font-size: 13.5px; }
+.exp dt { color: var(--ink-3); }
+.exp dd { margin: 0; color: var(--ink-2); }
+.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; max-width: 78ch; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 34px 1fr; gap: 8px; color: var(--ink-2); }
+.steps li::before { content: counter(s, decimal-leading-zero); font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); padding-top: 3px; }
+.steps b { color: var(--ink); }
+.sql-ui { display: grid; grid-template-columns: 250px 1fr; gap: 14px; }
+.sql-list { display: flex; flex-direction: column; gap: 2px; }
+.sql-list button { all: unset; cursor: pointer; padding: 7px 10px; border-radius: 6px; font-size: 13.5px; color: var(--ink-2); }
+.sql-list button .f { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); display: block; }
+.sql-list button:hover { background: var(--surface); color: var(--ink); }
+.sql-list button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: inset 2px 0 0 var(--accent); }
+.sql-list button:focus-visible { outline: 2px solid var(--accent); }
+.sql-pane { min-width: 0; }
+pre.code { background: var(--code-bg); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.6; margin: 0 0 12px; color: var(--ink); }
+pre.code .c { color: var(--ink-3); }
+pre.code .k { color: var(--accent); font-weight: 500; }
+.copy { all: unset; cursor: pointer; font-size: 12.5px; color: var(--accent); padding: 2px 0; }
+.copy:focus-visible { outline: 2px solid var(--accent); }
+.sql-result { max-height: 360px; overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.sql-result th { position: sticky; top: 0; background: var(--surface); }
+footer { padding: 32px 0 48px; color: var(--ink-3); font-size: 13px; }
+#tip { position: fixed; pointer-events: none; z-index: 50; background: var(--ink); color: var(--bg); font-size: 12.5px; line-height: 1.5; padding: 7px 10px; border-radius: 6px; max-width: 260px; opacity: 0; transition: opacity .08s; font-variant-numeric: tabular-nums; }
+#tip b { font-weight: 600; }
+.hit { fill: transparent; cursor: default; }
+@media (max-width: 820px) {
+  .case-head, .finding { grid-template-columns: 1fr; gap: 8px; }
+  .two { grid-template-columns: 1fr; }
+  .sql-ui { grid-template-columns: 1fr; }
+  .sql-list { flex-direction: row; overflow-x: auto; }
+  .sql-list button { white-space: nowrap; }
+}
+@media (max-width: 420px) { .wrap { padding: 0 16px; } body { font-size: 15px; } }
+@page { size: 1180px 1668px; margin: 36px 0; }
+@media print { nav.top { display: none; } pre.code { white-space: pre-wrap; } .two { grid-template-columns: 1fr 1fr !important; } .case-head, .finding { grid-template-columns: 170px 1fr !important; gap: 20px !important; } .chart, .exp, .tile, .verdict, .callout, .finding { break-inside: avoid; } .sql-result { max-height: none; overflow: visible; } body { background: #fff; } }
+</style>
+</head>
+<body>
+<nav class="top" aria-label="页面导航"><div class="wrap">
+  <span class="brand">海外产品增长诊断</span>
+  <a href="#olist">巴西电商</a>
+  <a href="#cookie">手游 A/B 实验</a>
+  <a href="#method">AI 工作流</a>
+  <a href="#sql">全部 SQL</a>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">Growth teardown · 2 public datasets · 13 SQL queries</div>
+  <h1>用 AI 写 SQL，拆解两个海外产品的增长问题</h1>
+  <p class="lede">拿两份真实的公开用户数据，从漏斗、留存和实验三个角度各回答一个增长问题：一家巴西电商平台的增长靠什么、卡在哪里；一款手游把关卡门槛后移 10 关，该不该全量上线。每个结论都附上产出它的 SQL，可以在页面底部逐条查看。</p>
+  <div class="meta"><span><b>张文韬</b></span><span>2026 年 11 月</span><span>工具：Claude（SQL 生成与校验）· DuckDB · Python</span><span>数据：Olist 巴西电商公开数据集 · Cookie Cats 手游 A/B 实验数据</span></div>
+  <div class="verdicts">
+    <div class="verdict"><div class="k">巴西电商 · 诊断</div><div class="v">97% 的用户只买过一次，增长几乎全部来自拉新；首单延迟送达是最清楚的流失信号</div></div>
+    <div class="verdict"><div class="k">巴西电商 · 下一步</div><div class="v">复购率基数太低，直接拿复购做实验要跑半年以上，先用差评率等前置指标验证干预</div></div>
+    <div class="verdict"><div class="k">手游实验 · 结论</div><div class="v">门槛后移到第 40 关使 7 日留存下降 0.82 个百分点（p = 0.0016），建议保持第 30 关</div></div>
+  </div>
+</div></header>
+
+<main class="wrap">
+
+<section class="case" id="olist">
+  <div class="case-head">
+    <div class="tag">案例 01<br>巴西 · 综合电商平台<br>2017.01 - 2018.08</div>
+    <div>
+      <h2>增长全靠拉新：Olist 的复购问题出在哪</h2>
+      <p>Olist 是巴西的电商平台，公开了约 10 万笔真实订单，覆盖客户、商家、商品、物流时间和评价七张表。问题是：平台在 20 个月里月订单从不到 800 涨到 6000 以上，这种增长能不能持续，留存端有没有可以撬动的点？</p>
+    </div>
+  </div>
+
+  <div class="tiles" id="olist-tiles"></div>
+
+  <div class="finding">
+    <div class="num">发现 1<strong>订单增长了 8 倍，老客订单始终只占约 3%</strong></div>
+    <div class="body">
+      <p>按月拆开新客首单和老客复购单，增长曲线几乎全部由新客贡献。2018 年平台月均新增约 6,500 位首单用户，但每月复购单只有 200 多笔。<b>这意味着获客一旦放缓，订单会同步下滑</b>，2018 年 3 月以后的平台期已经能看到这个迹象。</p>
+      <div class="chart" id="c-monthly"></div>
+      <div class="callout"><b>口径校验：</b>2,888 位"复购用户"里有 869 位的第二单与首单在同一天下，多数是一次购物被拆成几张订单，不是真正的回访。剔除后，真实复购用户只占 <b>2.1%</b>。下面所有留存指标都排除了同日订单。</div>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="num">发现 2<strong>平台变大了，留存没有变好</strong></div>
+    <div class="body">
+      <p>把每个月的新客当作一个 cohort，看他们在首单后 30、90、180 天内回来下第二单的比例。14 个 cohort 的 180 天复购率都落在 <b>1.6% 到 2.5%</b> 之间，没有随平台规模扩大而改善。2017 年 11 月黑色星期五带来了全年最多的新客，但这批人的复购率在平均水平以下，促销拉来的用户并没有更忠诚。</p>
+      <div class="chart" id="c-cohort"></div>
+      <p class="note">只纳入 2017-01 至 2018-02 的 cohort，保证每个人都有完整的 180 天观察期。</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="num">发现 3<strong>延迟送达把评分从 4.3 拉到 2.3，并且和不再回来相关</strong></div>
+    <div class="body">
+      <p>6.8% 的订单晚于平台承诺日期送达。这些订单的平均评分只有 <b>2.27</b>，62% 打了 1 到 2 星；按时送达的订单平均 4.29 分，差评率 9%。差评再往下传导到复购：首单打 5 星的用户 180 天复购率 2.05%，首单打 1 到 2 星的只有 1.56%。</p>
+      <div class="two">
+        <div class="chart" id="c-late"></div>
+        <div class="chart" id="c-firstexp"></div>
+      </div>
+      <div class="callout"><b>证据强度：</b>5 星和 1 到 2 星首单的复购差异统计显著（p = 0.007）；延迟和按时首单的差异方向一致但只是边缘显著（p = 0.07）。这是相关不是因果，延迟订单可能本来就集中在偏远地区和低复购品类。所以下面把它设计成实验去验证，而不是直接下结论。</div>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="num">发现 4<strong>东北部是体验洼地：配送慢一倍，延迟率翻倍</strong></div>
+    <div class="body">
+      <p>按巴西五大区汇总，东南部（圣保罗、里约等）占了近七成用户，中位配送 9 天、延迟率 6.1%；东北部中位配送 <b>17 天</b>、延迟率 <b>12.7%</b>，运费占商品价格的 21.8%，评分也是五区最低。如果平台要往人口第二大的东北部扩张，物流体验会是第一道坎。</p>
+      <div class="chart"><p class="chart-title">巴西五大区履约体验对比</p><p class="chart-sub">点击表头可排序 · 仅已送达订单</p><div class="scroll" id="t-region"></div></div>
+      <details style="margin-top:6px"><summary style="cursor:pointer;font-size:13.5px;color:var(--ink-2)">展开 27 个州的明细</summary><div class="chart" style="margin-top:8px"><div class="scroll" id="t-state"></div></div></details>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="num">发现 5<strong>首单品类决定了用户回来的概率</strong></div>
+    <div class="body">
+      <p>以首单所买的品类分组，箱包配饰、宠物、运动休闲的首单用户 180 天复购率在 2.5% 到 3.0%，是潮玩好物、游戏主机等低频品类的 2 到 3 倍。召回资源应该优先投给高复购品类的首单用户，而买游戏主机的人短期内本来就不太会再买。</p>
+      <div class="chart" id="c-category"></div>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="num">下一步<strong>三个可以上线的增长实验</strong></div>
+    <div class="body">
+      <p>先算一笔账：180 天复购率基线约 2%，想检测出相对提升 20%（2.0% 到 2.4%），在 80% 检验力下每组需要约 <b>21,100</b> 位新客，两组合计相当于平台 6.5 个月的全部新客。<b>直接拿复购率做主指标太慢</b>，所以每个实验都配一个能更早读数的前置指标。</p>
+      <div class="exps">
+        <div class="exp">
+          <h3>A · 延迟预警与补偿</h3>
+          <p class="note" style="margin:0">验证发现 3 的因果：主动沟通能不能挡住延迟带来的差评和流失</p>
+          <dl>
+            <dt>对象</dt><dd>预计晚于承诺日期送达的订单</dd>
+            <dt>干预</dt><dd>发货端判定可能延迟时，提前推送新的预计日期并附一张下单券</dd>
+            <dt>主指标</dt><dd>差评率（基线 62%，目标降到 55%，每组约 780 单）</dd>
+            <dt>护栏</dt><dd>券成本、退款率；长期跟踪 180 天复购</dd>
+          </dl>
+        </div>
+        <div class="exp">
+          <h3>B · 高复购品类的首单召回</h3>
+          <p class="note" style="margin:0">把有限的召回预算投给最可能回来的人</p>
+          <dl>
+            <dt>对象</dt><dd>首单为宠物、运动休闲、床品卫浴等高复购品类的新客</dd>
+            <dt>干预</dt><dd>首单送达后第 25 至 30 天推送同品类补货提醒或搭配推荐</dd>
+            <dt>主指标</dt><dd>60 天复购率；前置看推送点击和加购</dd>
+            <dt>护栏</dt><dd>退订率、投诉率</dd>
+          </dl>
+        </div>
+        <div class="exp">
+          <h3>C · 东北部的预计送达日期校准</h3>
+          <p class="note" style="margin:0">延迟是相对承诺而言的，先让承诺更诚实</p>
+          <dl>
+            <dt>对象</dt><dd>东北部 9 个州的订单，按州或城市分组随机</dd>
+            <dt>干预</dt><dd>按历史配送时长重新估算并展示预计送达日期</dd>
+            <dt>主指标</dt><dd>延迟率与差评率；护栏看下单转化率，防止承诺变长吓跑用户</dd>
+            <dt>风险</dt><dd>按地区分组样本少，需要更长周期或用双重差分评估</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="case" id="cookie">
+  <div class="case-head">
+    <div class="tag">案例 02<br>全球 · 休闲消除手游<br>9 万名新玩家</div>
+    <div>
+      <h2>关卡门槛后移 10 关，该不该全量上线？</h2>
+      <p>Cookie Cats 是一款三消手游，玩到一定关卡会遇到一道门：要么等待，要么付费才能继续。团队做了一个 A/B 实验，把新安装的玩家随机分成两组，门槛分别放在第 30 关（对照组）和第 40 关（实验组），记录每人一周内的游戏局数和第 1、7 天是否回来。</p>
+    </div>
+  </div>
+
+  <div class="tiles" id="cc-tiles"></div>
+
+  <div class="finding">
+    <div class="num">结果 1<strong>7 日留存显著下降，次日留存没有可信差异</strong></div>
+    <div class="body">
+      <p>门槛放在第 40 关的组，7 日留存从 19.02% 降到 18.20%，相对下降 4.3%，双比例 z 检验 <b>p = 0.0016</b>，95% 置信区间 0.31 到 1.33 个百分点，不包含 0。次日留存差 0.59 个百分点，p = 0.074，不能认为有差异。</p>
+      <div class="chart" id="c-ab"></div>
+      <div class="two">
+        <div class="chart" id="c-boot"></div>
+        <div>
+          <div class="callout"><b>为什么次日留存不显著：</b>每组约 4.5 万人、基线 19% 时，这个实验在 80% 检验力下能可靠检测的最小差异约 0.73 个百分点。7 日留存的差异 0.82 刚好在这条线之上，次日留存的 0.59 在这条线之下，所以样本量本身就不足以判断。</div>
+          <div class="callout"><b>数据清洗：</b>对照组有一名玩家一周打了 49,854 局，是异常值，会把平均局数拉高，所以比较参与度时用中位数和比例，不用均值。另有 3,994 人（4.4%）安装后一局都没玩，两组比例相近，不影响结论。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="num">结果 2<strong>两组玩到第 40 局的比例几乎一样，差别出在之后</strong></div>
+    <div class="body">
+      <p>参与度漏斗显示，两组从安装到第 30 局、第 40 局的留存比例几乎重合，说明门槛位置没有改变玩家前期的投入。一个合理的解释是：第 30 关的门槛强迫玩家暂停，反而保住了新鲜感；门槛推后让玩家一口气玩到腻，一周后回来的人更少。</p>
+      <div class="chart" id="c-funnel"></div>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="num">决策<strong>保持第 30 关，并把实验往前推一步</strong></div>
+    <div class="body">
+      <div class="exps">
+        <div class="exp">
+          <h3>建议：不上线第 40 关版本</h3>
+          <dl><dt>依据</dt><dd>核心指标 7 日留存显著下降，次日留存与前期参与度无收益</dd><dt>影响</dt><dd>按每月 10 万新玩家估算，全量上线每月会多流失约 820 名 7 日留存用户</dd></dl>
+        </div>
+        <div class="exp">
+          <h3>下一个实验：门槛提前到第 20 关</h3>
+          <dl><dt>假设</dt><dd>如果"强制暂停"是留存的来源，更早的门槛可能进一步提升 7 日留存</dd><dt>护栏</dt><dd>次日留存与付费转化，防止门槛太早直接劝退新玩家</dd></dl>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="case" id="method">
+  <div class="case-head">
+    <div class="tag">方法<br>AI 工作流</div>
+    <div>
+      <h2>AI 写 SQL，我负责问对问题和查错</h2>
+      <p>整个项目从拿到数据到发布这个页面用了一个下午。AI 负责把问题翻译成 SQL、跑统计检验、画图；我负责定义要回答的增长问题，以及逐条检查结果是否说得通。下面四个错误都是在检查时发现的，如果直接用 AI 的第一版输出，结论会是错的。</p>
+    </div>
+  </div>
+  <ol class="steps">
+    <li><span><b>同日拆单被算成复购。</b>第一版复购率是 3.0%。检查首单到第二单的间隔分布时发现 30% 的"复购"间隔为 0 天，加上时间窗口条件后真实复购率是 2.1%。</span></li>
+    <li><span><b>同一时刻的多张订单排序不稳定。</b>两次运行得到的首单人数相差几个人，原因是同一用户同一秒下了多单时窗口函数的排序不确定。给排序加上订单号作为第二关键字后，结果每次一致。</span></li>
+    <li><span><b>缺失的承诺送达日期被归进"按时"。</b>有 2 笔订单没有预计送达日期，第一版 CASE 语句把它们默认算作按时送达。改为显式排除空值。</span></li>
+    <li><span><b>观察期不足会压低近期 cohort 的留存。</b>2018 年下半年的新客还没过完 180 天，直接比较会让他们看起来留存更差，所以只纳入观察期完整的 cohort。</span></li>
+  </ol>
+</section>
+
+<section class="case" id="sql">
+  <div class="case-head">
+    <div class="tag">附录<br>全部 SQL 与结果</div>
+    <div>
+      <h2>每个数字都能追溯到一条查询</h2>
+      <p>13 条查询均在 DuckDB 中运行。左侧选择查询，右侧显示 SQL 原文和运行结果。</p>
+    </div>
+  </div>
+  <div class="sql-ui">
+    <div class="sql-list" role="tablist" aria-label="SQL 查询列表" id="sql-list"></div>
+    <div class="sql-pane" id="sql-pane" role="tabpanel"></div>
+  </div>
+</section>
+
+</main>
+<footer><div class="wrap">数据来源：Olist, Brazilian E-Commerce Public Dataset（github.com/olist/work-at-olist-data）；Cookie Cats A/B test dataset（github.com/ryanschaub/Mobile-Games-A-B-Testing-with-Cookie-Cats）。分析与页面：张文韬，2026 年 11 月。</div></footer>
+<div id="tip" role="status" aria-live="polite"></div>
+
+<script>
+const D = {"results": {"01_monthly_growth": {"sql": "-- 月度订单、GMV、新客与老客\nSELECT strftime(date_trunc('month', ts), '%Y-%m') AS month,\n       COUNT(*) AS orders,\n       ROUND(SUM(gmv)) AS gmv,\n       COUNT(*) FILTER (WHERE nth = 1) AS new_customer_orders,\n       COUNT(*) FILTER (WHERE nth > 1) AS repeat_orders\nFROM user_orders\nWHERE ts >= '2017-01-01' AND ts < '2018-09-01'\nGROUP BY 1 ORDER BY 1;\n", "cols": ["month", "orders", "gmv", "new_customer_orders", "repeat_orders"], "rows": [["2017-01", 787.0, 120098.0, 752.0, 35.0], ["2017-02", 1718.0, 244959.0, 1690.0, 28.0], ["2017-03", 2617.0, 368341.0, 2571.0, 46.0], ["2017-04", 2377.0, 353843.0, 2325.0, 52.0], ["2017-05", 3640.0, 503159.0, 3541.0, 99.0], ["2017-06", 3205.0, 429917.0, 3102.0, 103.0], ["2017-07", 3946.0, 492287.0, 3822.0, 124.0], ["2017-08", 4272.0, 568246.0, 4130.0, 142.0], ["2017-09", 4227.0, 621416.0, 4075.0, 152.0], ["2017-10", 4547.0, 660180.0, 4392.0, 155.0], ["2017-11", 7423.0, 1003862.0, 7190.0, 233.0], ["2017-12", 5620.0, 742184.0, 5439.0, 181.0], ["2018-01", 7187.0, 945456.0, 6951.0, 236.0], ["2018-02", 6625.0, 837895.0, 6357.0, 268.0], ["2018-03", 7168.0, 981051.0, 6931.0, 237.0], ["2018-04", 6919.0, 993593.0, 6698.0, 221.0], ["2018-05", 6833.0, 992872.0, 6586.0, 247.0], ["2018-06", 6145.0, 863266.0, 5920.0, 225.0], ["2018-07", 6233.0, 878044.0, 6016.0, 217.0], ["2018-08", 6421.0, 848860.0, 6209.0, 212.0]]}, "02_fulfilment_funnel": {"sql": "-- 订单履约漏斗：下单 → 支付审核 → 交给物流 → 送达 → 留下评价\nSELECT COUNT(*) AS placed,\n       COUNT(order_approved_at) AS approved,\n       COUNT(order_delivered_carrier_date) AS shipped,\n       COUNT(order_delivered_customer_date) AS delivered,\n       COUNT(review_score) FILTER (WHERE order_delivered_customer_date IS NOT NULL) AS reviewed_after_delivery\nFROM order_fact;\n", "cols": ["placed", "approved", "shipped", "delivered", "reviewed_after_delivery"], "rows": [[99441.0, 99281.0, 97658.0, 96476.0, 95830.0]]}, "03_repeat_rate": {"sql": "-- 有多少用户只买过一次\nWITH u AS (SELECT user_id, COUNT(*) AS n FROM user_orders GROUP BY user_id)\nSELECT COUNT(*) AS users,\n       COUNT(*) FILTER (WHERE n >= 2) AS repeat_users,\n       ROUND(100.0 * COUNT(*) FILTER (WHERE n >= 2) / COUNT(*), 2) AS repeat_pct,\n       ROUND(100.0 * (SELECT COUNT(*) FROM user_orders WHERE nth > 1) / (SELECT COUNT(*) FROM user_orders), 2) AS repeat_order_share_pct\nFROM u;\n", "cols": ["users", "repeat_users", "repeat_pct", "repeat_order_share_pct"], "rows": [[94990.0, 2888.0, 3.04, 3.28]]}, "04_time_to_second": {"sql": "-- 复购用户从首单到第二单隔了多少天\nWITH f AS (SELECT user_id, ts FROM user_orders WHERE nth = 1),\n     s AS (SELECT user_id, ts FROM user_orders WHERE nth = 2)\nSELECT CASE WHEN d = 0 THEN '当天'\n            WHEN d <= 30 THEN '1-30天'\n            WHEN d <= 90 THEN '31-90天'\n            WHEN d <= 180 THEN '91-180天'\n            ELSE '180天以上' END AS gap,\n       COUNT(*) AS users\nFROM (SELECT date_diff('day', f.ts, s.ts) AS d FROM f JOIN s USING (user_id))\nGROUP BY 1 ORDER BY MIN(d);\n", "cols": ["gap", "users"], "rows": [["当天", 869.0], ["1-30天", 600.0], ["31-90天", 503.0], ["91-180天", 423.0], ["180天以上", 493.0]]}, "05_cohort_retention": {"sql": "-- 月度新客 cohort：首单后 30/90/180 天内再次下单的比例\n-- 只看有完整 180 天观察期的 cohort（2017-01 至 2018-02）\nWITH f AS (SELECT user_id, ts AS first_ts FROM user_orders WHERE nth = 1),\n     nxt AS (SELECT user_id, MIN(ts) AS second_ts FROM user_orders WHERE nth = 2 GROUP BY user_id)\nSELECT strftime(date_trunc('month', first_ts), '%Y-%m') AS cohort,\n       COUNT(*) AS new_users,\n       ROUND(100.0 * AVG(CASE WHEN second_ts <= first_ts + INTERVAL 30 DAY  AND second_ts > first_ts + INTERVAL 1 DAY THEN 1 ELSE 0 END), 2) AS r30,\n       ROUND(100.0 * AVG(CASE WHEN second_ts <= first_ts + INTERVAL 90 DAY  AND second_ts > first_ts + INTERVAL 1 DAY THEN 1 ELSE 0 END), 2) AS r90,\n       ROUND(100.0 * AVG(CASE WHEN second_ts <= first_ts + INTERVAL 180 DAY AND second_ts > first_ts + INTERVAL 1 DAY THEN 1 ELSE 0 END), 2) AS r180\nFROM f LEFT JOIN nxt USING (user_id)\nWHERE first_ts >= '2017-01-01' AND first_ts < '2018-03-01'\nGROUP BY 1 ORDER BY 1;\n", "cols": ["cohort", "new_users", "r30", "r90", "r180"], "rows": [["2017-01", 752.0, 0.53, 0.8, 1.6], ["2017-02", 1690.0, 0.53, 0.89, 1.6], ["2017-03", 2571.0, 0.54, 1.24, 1.75], ["2017-04", 2325.0, 0.6, 1.2, 1.89], ["2017-05", 3541.0, 0.85, 1.52, 2.32], ["2017-06", 3102.0, 0.55, 1.39, 2.22], ["2017-07", 3822.0, 0.71, 1.2, 1.91], ["2017-08", 4130.0, 0.58, 1.33, 2.28], ["2017-09", 4075.0, 0.86, 1.74, 2.45], ["2017-10", 4392.0, 0.57, 1.21, 1.66], ["2017-11", 7190.0, 0.72, 1.28, 1.78], ["2017-12", 5439.0, 0.37, 0.97, 1.6], ["2018-01", 6951.0, 0.55, 1.18, 1.73], ["2018-02", 6357.0, 0.49, 1.1, 1.79]]}, "06_late_vs_review": {"sql": "-- 延迟送达对评分的影响\nSELECT CASE WHEN is_late THEN '延迟送达' ELSE '按时送达' END AS delivery,\n       COUNT(*) AS orders,\n       ROUND(AVG(review_score), 2) AS avg_score,\n       ROUND(100.0 * AVG(CASE WHEN review_score <= 2 THEN 1 ELSE 0 END), 1) AS low_score_pct\nFROM order_fact\nWHERE order_status = 'delivered' AND order_delivered_customer_date IS NOT NULL AND review_score IS NOT NULL\nGROUP BY 1;\n", "cols": ["delivery", "orders", "avg_score", "low_score_pct"], "rows": [["延迟送达", 6381.0, 2.27, 62.4], ["按时送达", 89443.0, 4.29, 9.2]]}, "07_first_experience_repeat": {"sql": "-- 首单体验决定会不会回来：首单评分 / 是否延迟 与 180 天内复购率\n-- 只看 2018-03 前的首单，保证每个人都有 180 天观察期；排除同日拆单\nWITH f AS (SELECT user_id, ts AS first_ts, review_score, is_late\n           FROM user_orders WHERE nth = 1 AND order_status = 'delivered'\n             AND ts < '2018-03-01' AND review_score IS NOT NULL AND is_late IS NOT NULL),\n     nxt AS (SELECT user_id, ts AS second_ts FROM user_orders WHERE nth = 2)\nSELECT 'score_' || CAST(ROUND(review_score) AS INT) AS segment,\n       COUNT(*) AS users,\n       ROUND(100.0 * AVG(CASE WHEN second_ts > first_ts + INTERVAL 1 DAY AND second_ts <= first_ts + INTERVAL 180 DAY THEN 1 ELSE 0 END), 2) AS repeat_180_pct\nFROM f LEFT JOIN nxt USING (user_id) GROUP BY 1\nUNION ALL\nSELECT CASE WHEN is_late THEN 'late' ELSE 'on_time' END,\n       COUNT(*),\n       ROUND(100.0 * AVG(CASE WHEN second_ts > first_ts + INTERVAL 1 DAY AND second_ts <= first_ts + INTERVAL 180 DAY THEN 1 ELSE 0 END), 2)\nFROM f LEFT JOIN nxt USING (user_id) GROUP BY 1\nORDER BY 1;\n", "cols": ["segment", "users", "repeat_180_pct"], "rows": [["late", 3583.0, 1.51], ["on_time", 51496.0, 1.93], ["score_1", 5456.0, 1.59], ["score_2", 1770.0, 1.47], ["score_3", 4819.0, 1.85], ["score_4", 11073.0, 1.72], ["score_5", 31961.0, 2.05]]}, "08_state_breakdown": {"sql": "-- 分州：用户量、配送天数、延迟率、评分、运费占比、人均 GMV\nSELECT state,\n       COUNT(DISTINCT user_id) AS users,\n       COUNT(*) AS orders,\n       ROUND(MEDIAN(delivery_days), 1) AS median_delivery_days,\n       ROUND(100.0 * AVG(CASE WHEN is_late THEN 1 ELSE 0 END), 1) AS late_pct,\n       ROUND(AVG(review_score), 2) AS avg_score,\n       ROUND(100.0 * SUM(freight) / SUM(gmv), 1) AS freight_to_price_pct,\n       ROUND(SUM(gmv) / COUNT(DISTINCT user_id), 1) AS gmv_per_user\nFROM order_fact\nWHERE order_status = 'delivered' AND order_delivered_customer_date IS NOT NULL\nGROUP BY 1 ORDER BY users DESC;\n", "cols": ["state", "users", "orders", "median_delivery_days", "late_pct", "avg_score", "freight_to_price_pct", "gmv_per_user"], "rows": [["SP", 39149.0, 40494.0, 7.0, 4.5, 4.25, 13.9, 129.4], ["RJ", 11917.0, 12350.0, 12.0, 12.1, 3.97, 16.8, 147.7], ["MG", 11001.0, 11354.0, 10.0, 4.6, 4.19, 17.2, 141.1], ["RS", 5167.0, 5344.0, 13.0, 6.1, 4.19, 18.2, 141.0], ["PR", 4769.0, 4923.0, 10.0, 4.0, 4.24, 17.4, 139.7], ["SC", 3449.0, 3546.0, 13.0, 8.2, 4.13, 17.4, 147.0], ["BA", 3158.0, 3256.0, 17.0, 12.2, 3.93, 19.8, 156.3], ["DF", 2019.0, 2080.0, 11.0, 5.7, 4.13, 16.8, 146.9], ["ES", 1928.0, 1995.0, 14.0, 10.7, 4.08, 18.3, 139.3], ["GO", 1895.0, 1957.0, 14.0, 6.5, 4.1, 18.3, 149.3], ["PE", 1551.0, 1593.0, 16.0, 9.6, 4.08, 22.8, 162.4], ["CE", 1258.0, 1279.0, 18.0, 13.8, 3.94, 21.3, 174.7], ["PA", 922.0, 946.0, 21.0, 11.2, 3.91, 21.5, 189.2], ["MT", 856.0, 886.0, 16.0, 6.0, 4.15, 19.1, 177.8], ["MA", 700.0, 717.0, 19.0, 17.4, 3.83, 26.3, 167.2], ["MS", 681.0, 701.0, 14.0, 9.7, 4.16, 16.4, 169.5], ["PB", 504.0, 517.0, 18.0, 10.4, 4.08, 22.4, 223.4], ["PI", 464.0, 476.0, 16.0, 13.9, 3.99, 24.1, 182.6], ["RN", 464.0, 474.0, 16.0, 9.3, 4.15, 22.8, 177.0], ["AL", 387.0, 397.0, 22.0, 21.4, 3.85, 19.6, 203.8], ["SE", 329.0, 335.0, 18.0, 15.2, 3.91, 24.2, 172.0], ["TO", 267.0, 274.0, 16.0, 9.9, 4.15, 24.0, 181.3], ["RO", 231.0, 243.0, 18.0, 2.9, 4.17, 24.7, 197.8], ["AM", 140.0, 145.0, 26.0, 2.8, 4.24, 24.5, 158.3], ["AC", 76.0, 80.0, 18.0, 3.8, 4.09, 22.9, 209.6], ["AP", 66.0, 67.0, 25.0, 3.0, 4.24, 20.7, 202.6], ["RR", 40.0, 41.0, 25.0, 12.2, 3.9, 28.1, 176.4]]}, "09_category_repeat": {"sql": "-- 哪些品类的首单用户更容易回来（首单 ≥ 500 人的品类）\nWITH f AS (\n  SELECT uo.user_id, uo.ts AS first_ts, ANY_VALUE(COALESCE(t.product_category_name_english, p.product_category_name)) AS category\n  FROM user_orders uo\n  JOIN order_items oi USING (order_id)\n  JOIN products p USING (product_id)\n  LEFT JOIN cat_tr t ON t.product_category_name = p.product_category_name\n  WHERE uo.nth = 1 AND uo.ts < '2018-03-01'\n  GROUP BY 1, 2\n), nxt AS (SELECT user_id, ts AS second_ts FROM user_orders WHERE nth = 2)\nSELECT category, COUNT(*) AS first_buyers,\n       ROUND(100.0 * AVG(CASE WHEN second_ts > first_ts + INTERVAL 1 DAY AND second_ts <= first_ts + INTERVAL 180 DAY THEN 1 ELSE 0 END), 2) AS repeat_180_pct\nFROM f LEFT JOIN nxt USING (user_id)\nGROUP BY 1 HAVING COUNT(*) >= 500\nORDER BY repeat_180_pct DESC;\n", "cols": ["category", "first_buyers", "repeat_180_pct"], "rows": [["fashion_bags_accessories", 1164.0, 3.01], ["pet_shop", 833.0, 2.88], ["sports_leisure", 4586.0, 2.57], ["bed_bath_table", 5455.0, 2.49], ["furniture_decor", 3817.0, 2.28], ["garden_tools", 2336.0, 2.01], ["perfumery", 2017.0, 1.98], ["baby", 1528.0, 1.9], ["health_beauty", 4431.0, 1.87], ["electronics", 1412.0, 1.77], ["telephony", 2653.0, 1.7], ["watches_gifts", 2687.0, 1.67], ["toys", 2665.0, 1.61], ["housewares", 2980.0, 1.61], ["stationery", 1391.0, 1.58], ["auto", 1922.0, 1.51], ["computers_accessories", 3855.0, 1.45], ["office_furniture", 784.0, 1.4], [null, 1032.0, 1.36], ["consoles_games", 761.0, 1.31], ["luggage_accessories", 708.0, 1.27], ["cool_stuff", 2613.0, 1.07]]}, "10_ab_test": {"sql": "-- Cookie Cats A/B 实验：第一道关卡门槛放在第 30 关（对照）还是第 40 关（实验）\nSELECT version,\n       COUNT(*) AS players,\n       ROUND(100.0 * AVG(CAST(retention_1 AS INT)), 2) AS d1_retention_pct,\n       ROUND(100.0 * AVG(CAST(retention_7 AS INT)), 2) AS d7_retention_pct,\n       MEDIAN(sum_gamerounds) AS median_rounds,\n       ROUND(100.0 * AVG(CASE WHEN sum_gamerounds >= 30 THEN 1 ELSE 0 END), 2) AS reached_30_pct,\n       ROUND(100.0 * AVG(CASE WHEN sum_gamerounds >= 40 THEN 1 ELSE 0 END), 2) AS reached_40_pct\nFROM cookie_cats GROUP BY 1 ORDER BY 1;\n", "cols": ["version", "players", "d1_retention_pct", "d7_retention_pct", "median_rounds", "reached_30_pct", "reached_40_pct"], "rows": [["gate_30", 44700.0, 44.82, 19.02, 17.0, 37.26, 30.35], ["gate_40", 45489.0, 44.23, 18.2, 16.0, 36.52, 30.4]]}, "11_ab_engagement_funnel": {"sql": "-- 玩家参与度漏斗：安装 → 玩过 1 局 → 10 局 → 30 局 → 40 局 → 100 局\nSELECT version,\n       COUNT(*) AS installed,\n       COUNT(*) FILTER (WHERE sum_gamerounds >= 1)   AS r1,\n       COUNT(*) FILTER (WHERE sum_gamerounds >= 10)  AS r10,\n       COUNT(*) FILTER (WHERE sum_gamerounds >= 30)  AS r30,\n       COUNT(*) FILTER (WHERE sum_gamerounds >= 40)  AS r40,\n       COUNT(*) FILTER (WHERE sum_gamerounds >= 100) AS r100\nFROM cookie_cats GROUP BY 1 ORDER BY 1;\n", "cols": ["version", "installed", "r1", "r10", "r30", "r40", "r100"], "rows": [["gate_30", 44700.0, 42763.0, 27865.0, 16656.0, 13566.0, 6168.0], ["gate_40", 45489.0, 43432.0, 28087.0, 16613.0, 13827.0, 6348.0]]}, "12_region_rollup": {"sql": "-- 按巴西五大区汇总：东北部配送最慢、延迟最多\nSELECT CASE WHEN state IN ('SP','RJ','MG','ES') THEN '东南' WHEN state IN ('PR','SC','RS') THEN '南部' WHEN state IN ('MA','PI','CE','RN','PB','PE','AL','SE','BA') THEN '东北' WHEN state IN ('AM','RR','AP','PA','TO','RO','AC') THEN '北部' ELSE '中西部' END AS region,\n       COUNT(DISTINCT user_id) AS users,\n       ROUND(MEDIAN(delivery_days), 1) AS median_delivery_days,\n       ROUND(100.0 * AVG(CASE WHEN is_late THEN 1 ELSE 0 END), 1) AS late_pct,\n       ROUND(AVG(review_score), 2) AS avg_score,\n       ROUND(100.0 * SUM(freight) / SUM(gmv), 1) AS freight_to_price_pct\nFROM order_fact\nWHERE order_status = 'delivered' AND order_delivered_customer_date IS NOT NULL\nGROUP BY 1 ORDER BY users DESC;\n", "cols": ["region", "users", "median_delivery_days", "late_pct", "avg_score", "freight_to_price_pct"], "rows": [["东南", 63987.0, 9.0, 6.1, 4.18, 15.2], ["南部", 13382.0, 12.0, 5.9, 4.19, 17.7], ["东北", 8813.0, 17.0, 12.7, 3.97, 21.8], ["中西部", 5449.0, 13.0, 6.5, 4.13, 17.7], ["北部", 1742.0, 20.0, 8.6, 4.03, 22.7]]}}, "stats": {"retention_1": {"p1": 44.82, "p2": 44.23, "diff_pp": 0.591, "z": 1.78, "p": 0.0744, "ci95_pp": [-0.06, 1.24], "rel_pct": 1.3}, "retention_7": {"p1": 19.02, "p2": 18.2, "diff_pp": 0.82, "z": 3.16, "p": 0.0016, "ci95_pp": [0.31, 1.33], "rel_pct": 4.5}, "d7_bootstrap": {"prob_gate30_better": 0.9993}, "d7_boot_hist": {"counts": [2, 0, 0, 1, 6, 5, 15, 20, 36, 63, 99, 137, 202, 242, 292, 327, 297, 280, 268, 211, 166, 123, 95, 49, 34, 13, 10, 2, 4, 1], "edges": [-0.257, -0.19, -0.123, -0.056, 0.01, 0.077, 0.144, 0.211, 0.278, 0.344, 0.411, 0.478, 0.545, 0.612, 0.678, 0.745, 0.812, 0.879, 0.946, 1.012, 1.079, 1.146, 1.213, 1.279, 1.346, 1.413, 1.48, 1.547, 1.613, 1.68, 1.747]}, "mde_pp": 0.73, "olist_late": {"p1": 1.93, "p2": 1.51, "diff_pp": 0.423, "z": 1.79, "p": 0.073, "ci95_pp": [0.01, 0.84], "rel_pct": 28.1}, "olist_score": {"p1": 2.05, "p2": 1.56, "diff_pp": 0.487, "z": 2.7, "p": 0.007, "ci95_pp": [0.16, 0.81], "rel_pct": 31.1}}, "base": "-- 基础视图：每笔订单一行，带客户唯一ID、州、金额、履约时间和评分\nCREATE OR REPLACE VIEW order_fact AS\nWITH item AS (\n  SELECT order_id, SUM(price) AS gmv, SUM(freight_value) AS freight, COUNT(*) AS n_items\n  FROM order_items GROUP BY order_id\n), rev AS (\n  SELECT order_id, AVG(review_score) AS review_score\n  FROM order_reviews GROUP BY order_id\n)\nSELECT o.order_id, c.customer_unique_id AS user_id, c.customer_state AS state,\n       o.order_status, o.order_purchase_timestamp AS ts,\n       o.order_approved_at, o.order_delivered_carrier_date, o.order_delivered_customer_date,\n       o.order_estimated_delivery_date,\n       date_diff('day', o.order_purchase_timestamp, o.order_delivered_customer_date) AS delivery_days,\n       o.order_delivered_customer_date > o.order_estimated_delivery_date + INTERVAL 1 DAY AS is_late,\n       i.gmv, i.freight, r.review_score\nFROM orders o\nJOIN customers c USING (customer_id)\nLEFT JOIN item i USING (order_id)\nLEFT JOIN rev r USING (order_id);\n\n-- 每个用户按时间给订单编号，第 1 单 = 首单\nCREATE OR REPLACE VIEW user_orders AS\nSELECT *, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY ts, order_id) AS nth\nFROM order_fact\nWHERE order_status NOT IN ('canceled','unavailable');\n"};
+const NS = "http://www.w3.org/2000/svg";
+const fmt = (n, d=0) => Number(n).toLocaleString("zh-CN", {minimumFractionDigits: d, maximumFractionDigits: d});
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const tip = document.getElementById("tip");
+function showTip(e, html) { tip.innerHTML = html; tip.style.opacity = 1; moveTip(e); }
+function moveTip(e) { const x = e.clientX + 14, y = e.clientY + 14; const w = tip.offsetWidth, h = tip.offsetHeight; tip.style.left = Math.min(x, innerWidth - w - 8) + "px"; tip.style.top = Math.min(y, innerHeight - h - 8) + "px"; }
+function hideTip() { tip.style.opacity = 0; }
+function el(tag, attrs={}, parent) { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; }
+function txt(parent, x, y, s, attrs={}) { const t = el("text", Object.assign({x, y}, attrs), parent); t.textContent = s; return t; }
+function bindTip(node, html) { node.addEventListener("mousemove", e => showTip(e, html)); node.addEventListener("mouseleave", hideTip); }
+function head(box, title, sub, legend) {
+  box.innerHTML = `<p class="chart-title">${title}</p>` + (sub ? `<p class="chart-sub">${sub}</p>` : "") +
+    (legend ? `<div class="legend">${legend.map(l => `<span><i style="background:var(${l[1]})"></i>${l[0]}</span>`).join("")}</div>` : "");
+}
+function niceMax(v) { const p = Math.pow(10, Math.floor(Math.log10(v))); const m = v / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p; }
+function roundTopRect(g, x, y, w, h, r, fill) {
+  r = Math.min(r, w / 2, h);
+  const d = `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`;
+  return el("path", {d, fill}, g);
+}
+function roundRightRect(g, x, y, w, h, r, fill) {
+  r = Math.min(r, h / 2, w);
+  const d = `M${x},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h - r}Q${x + w},${y + h} ${x + w - r},${y + h}H${x}Z`;
+  return el("path", {d, fill}, g);
+}
+const rows = k => D.results[k].rows;
+
+/* tiles */
+(function () {
+  const rr = rows("03_repeat_rate")[0], fn = rows("02_fulfilment_funnel")[0];
+  const t = [[fmt(fn[0]), "订单（2016.09 - 2018.10）"], [fmt(rr[0]), "独立用户"], ["2.1%", "真实复购用户占比（剔除同日拆单）"], ["6.8%", "订单晚于承诺日期送达"]];
+  document.getElementById("olist-tiles").innerHTML = t.map(x => `<div class="tile"><div class="n">${x[0]}</div><div class="l">${x[1]}</div></div>`).join("");
+  const ab = rows("10_ab_test");
+  const c = [[fmt(ab[0][1] + ab[1][1]), "新安装玩家，随机分为两组"], [ab[0][3].toFixed(2) + "%", "第 30 关组 7 日留存"], [ab[1][3].toFixed(2) + "%", "第 40 关组 7 日留存"], ["p = " + D.stats.retention_7.p, "7 日留存差异显著性"]];
+  document.getElementById("cc-tiles").innerHTML = c.map(x => `<div class="tile"><div class="n">${x[0]}</div><div class="l">${x[1]}</div></div>`).join("");
+})();
+
+/* monthly stacked bars */
+function monthly() {
+  const box = document.getElementById("c-monthly");
+  head(box, "月度订单：新客首单与老客复购", "2017.01 - 2018.08 · 不含取消订单", [["新客首单", "--s1"], ["老客复购单", "--s2"]]);
+  const data = rows("01_monthly_growth");
+  const W = 760, H = 250, m = {l: 44, r: 8, t: 10, b: 28};
+  const svg = el("svg", {viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "月度订单柱状图，老客复购单始终只占约 3%"}, box);
+  const max = niceMax(Math.max(...data.map(d => d[1])));
+  const iw = W - m.l - m.r, ih = H - m.t - m.b, bw = iw / data.length;
+  for (let i = 0; i <= 4; i++) { const v = max * i / 4, y = m.t + ih - ih * v / max; el("line", {x1: m.l, x2: W - m.r, y1: y, y2: y, class: "grid"}, svg); txt(svg, m.l - 6, y + 4, fmt(v), {"text-anchor": "end"}); }
+  data.forEach((d, i) => {
+    const x = m.l + i * bw + bw * 0.18, w = bw * 0.64;
+    const hNew = ih * d[3] / max, hRep = ih * d[4] / max, base = m.t + ih;
+    el("rect", {x, y: base - hNew, width: w, height: hNew, fill: css("--s1")}, svg);
+    roundTopRect(svg, x, base - hNew - hRep - 2, w, Math.max(hRep, 2), 3, css("--s2"));
+    if (i % 2 === 0 || i === data.length - 1) txt(svg, x + w / 2, H - 10, d[0].slice(2).replace("-", "."), {"text-anchor": "middle"});
+    const hit = el("rect", {x: m.l + i * bw, y: m.t, width: bw, height: ih, class: "hit"}, svg);
+    bindTip(hit, `<b>${d[0]}</b><br>新客首单 ${fmt(d[3])}<br>老客复购单 ${fmt(d[4])}（${(100 * d[4] / d[1]).toFixed(1)}%）<br>GMV R$ ${fmt(d[2])}`);
+  });
+  const li = data.findIndex(d => d[0] === "2017-11");
+  txt(svg, m.l + li * bw + bw / 2, m.t + ih - ih * data[li][1] / max - 8, "黑色星期五", {"text-anchor": "middle", class: "val"});
+}
+
+/* cohort heatmap */
+function cohort() {
+  const box = document.getElementById("c-cohort");
+  head(box, "新客 cohort 复购率", "首单后 N 天内下第二单的比例（%）· 颜色越深越高 · 悬停查看人数");
+  const data = rows("05_cohort_retention");
+  const cols = [["30 天", 2], ["90 天", 3], ["180 天", 4]];
+  const W = 760, rowH = 22, m = {l: 120, t: 24, r: 8}, H = m.t + data.length * rowH + 6;
+  const svg = el("svg", {viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "cohort 复购率热力图，180 天复购率在 1.6% 到 2.5% 之间"}, box);
+  const cw = (W - m.l - m.r) / cols.length;
+  const steps = ["--seq-0", "--seq-1", "--seq-2", "--seq-3", "--seq-4", "--seq-5", "--seq-6"];
+  const color = v => css(steps[Math.min(6, Math.floor(v / 2.6 * 7))]);
+  cols.forEach((c, j) => txt(svg, m.l + j * cw + cw / 2, 14, c[0], {"text-anchor": "middle", class: "val"}));
+  data.forEach((d, i) => {
+    const y = m.t + i * rowH;
+    txt(svg, 0, y + 15, d[0], {class: "val"});
+    txt(svg, m.l - 10, y + 15, fmt(d[1]) + " 人", {"text-anchor": "end"});
+    cols.forEach((c, j) => {
+      const v = d[c[1]], x = m.l + j * cw;
+      const r = el("rect", {x: x + 1, y: y + 1, width: cw - 2, height: rowH - 2, rx: 3, fill: color(v)}, svg);
+      const dark = Math.floor(v / 2.6 * 7) >= 4;
+      const t = txt(svg, x + cw / 2, y + 15, v.toFixed(2) + "%", {"text-anchor": "middle"});
+      t.style.fill = dark ? "#ffffff" : css("--ink");
+      bindTip(r, `<b>${d[0]} cohort</b><br>${fmt(d[1])} 位新客<br>${c[0]}内复购 ${v.toFixed(2)}%`);
+      bindTip(t, `<b>${d[0]} cohort</b><br>${fmt(d[1])} 位新客<br>${c[0]}内复购 ${v.toFixed(2)}%`);
+    });
+  });
+}
+
+/* generic horizontal bars */
+function hbars(box, items, opts) {
+  const W = opts.W || 380, rowH = opts.rowH || 30, m = {l: opts.l || 90, r: 56, t: 6}, H = m.t + items.length * rowH + 4;
+  const svg = el("svg", {viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": opts.aria}, box);
+  const max = opts.max || Math.max(...items.map(d => d.v));
+  const iw = W - m.l - m.r;
+  items.forEach((d, i) => {
+    const y = m.t + i * rowH, h = Math.min(16, rowH - 10);
+    txt(svg, m.l - 8, y + h / 2 + 8, d.label, {"text-anchor": "end", class: d.strong ? "strong" : "val"});
+    const w = Math.max(2, iw * d.v / max);
+    const p = roundRightRect(svg, m.l, y + 4, w, h, 4, css(d.color || "--s1"));
+    txt(svg, m.l + w + 6, y + h / 2 + 8, opts.fmtv(d.v), {class: "val"});
+    bindTip(p, d.tip);
+  });
+}
+
+function late() {
+  const box = document.getElementById("c-late");
+  head(box, "送达情况与评分", "1 到 2 星订单占比（%）");
+  const d = rows("06_late_vs_review");
+  const items = d.map(r => ({label: r[0], v: r[3], color: r[0] === "延迟送达" ? "--s2" : "--s1",
+    tip: `<b>${r[0]}</b><br>${fmt(r[1])} 单<br>平均评分 ${r[2]}<br>1 到 2 星占比 ${r[3]}%`}));
+  hbars(box, items, {W: 380, l: 74, rowH: 40, max: 70, fmtv: v => v.toFixed(1) + "%", aria: "延迟送达订单差评率 62.4%，按时送达 9.2%"});
+  const p = document.createElement("p"); p.className = "chart-sub"; p.style.marginTop = "6px";
+  p.textContent = `平均评分：延迟 ${d.find(r => r[0] === "延迟送达")[2]} 分 · 按时 ${d.find(r => r[0] === "按时送达")[2]} 分`; box.appendChild(p);
+}
+
+function firstexp() {
+  const box = document.getElementById("c-firstexp");
+  head(box, "首单评分与 180 天复购率", "按首单评分分组（%）· 首单在 2018-03 前");
+  const d = rows("07_first_experience_repeat");
+  const lab = {score_1: "1 星", score_2: "2 星", score_3: "3 星", score_4: "4 星", score_5: "5 星"};
+  const items = d.filter(r => r[0].startsWith("score")).map(r => ({label: lab[r[0]], v: r[2],
+    tip: `<b>首单 ${lab[r[0]]}</b><br>${fmt(r[1])} 位用户<br>180 天复购 ${r[2]}%`}));
+  hbars(box, items, {W: 380, l: 44, rowH: 26, max: 2.5, fmtv: v => v.toFixed(2) + "%", aria: "首单 5 星用户复购率 2.05%，1 星 1.59%"});
+  const lt = d.find(r => r[0] === "late"), on = d.find(r => r[0] === "on_time");
+  const p = document.createElement("p"); p.className = "chart-sub"; p.style.marginTop = "6px";
+  p.textContent = `首单延迟 ${lt[2]}%（${fmt(lt[1])} 人）· 首单按时 ${on[2]}%（${fmt(on[1])} 人）`; box.appendChild(p);
+}
+
+/* sortable tables */
+function sortableTable(container, cols, data, barCol) {
+  let sortIdx = 1, dir = -1;
+  const max = barCol != null ? Math.max(...data.map(r => r[barCol])) : 0;
+  function render() {
+    const sorted = [...data].sort((a, b) => (a[sortIdx] > b[sortIdx] ? 1 : a[sortIdx] < b[sortIdx] ? -1 : 0) * dir);
+    container.innerHTML = `<table><thead><tr>${cols.map((c, i) => `<th scope="col" aria-sort="${i === sortIdx ? (dir < 0 ? "descending" : "ascending") : "none"}"><button data-i="${i}">${c[0]}${i === sortIdx ? (dir < 0 ? " ↓" : " ↑") : ""}</button></th>`).join("")}</tr></thead><tbody>` +
+      sorted.map(r => `<tr>${cols.map((c, i) => `<td>${c[1](r[i])}${i === barCol ? `<span class="bar-in" style="width:${Math.round(48 * r[i] / max)}px;background:var(--s2)"></span>` : ""}</td>`).join("")}</tr>`).join("") + "</tbody></table>";
+    container.querySelectorAll("th button").forEach(b => b.onclick = () => { const i = +b.dataset.i; if (i === sortIdx) dir = -dir; else { sortIdx = i; dir = -1; } render(); container.querySelector(`th button[data-i="${i}"]`).focus(); });
+  }
+  render();
+}
+function regionTables() {
+  const id = v => v, f1 = v => Number(v).toFixed(1), f2 = v => Number(v).toFixed(2), n0 = v => fmt(v);
+  sortableTable(document.getElementById("t-region"),
+    [["大区", id], ["用户数", n0], ["中位配送天数", f1], ["延迟率 %", f1], ["平均评分", f2], ["运费 / 商品价 %", f1]],
+    rows("12_region_rollup"), 3);
+  const st = rows("08_state_breakdown").map(r => [r[0], r[1], r[3], r[4], r[5], r[6], r[7]]);
+  sortableTable(document.getElementById("t-state"),
+    [["州", id], ["用户数", n0], ["中位配送天数", f1], ["延迟率 %", f1], ["平均评分", f2], ["运费 / 商品价 %", f1], ["人均 GMV R$", f1]], st, 3);
+}
+
+function category() {
+  const box = document.getElementById("c-category");
+  head(box, "首单品类与 180 天复购率", "首单用户不少于 500 人的品类（%）");
+  const zh = {fashion_bags_accessories: "箱包配饰", pet_shop: "宠物", sports_leisure: "运动休闲", bed_bath_table: "床品卫浴", furniture_decor: "家居装饰", garden_tools: "园艺工具", perfumery: "香水", baby: "母婴", health_beauty: "美妆个护", electronics: "电子产品", telephony: "手机通讯", watches_gifts: "手表礼品", toys: "玩具", housewares: "家庭用品", stationery: "文具", auto: "汽车用品", computers_accessories: "电脑配件", office_furniture: "办公家具", consoles_games: "游戏主机", luggage_accessories: "旅行箱包", cool_stuff: "潮玩好物"};
+  const d = rows("09_category_repeat").filter(r => r[0]);
+  const items = d.map(r => ({label: zh[r[0]] || r[0], v: r[2], color: "--s1",
+    tip: `<b>${zh[r[0]] || r[0]}</b><br>${fmt(r[1])} 位首单用户<br>180 天复购 ${r[2]}%`}));
+  hbars(box, items, {W: 760, l: 80, rowH: 22, max: 3.2, fmtv: v => v.toFixed(2) + "%", aria: "品类复购率排行，箱包配饰最高 3.0%，潮玩好物最低 1.07%"});
+}
+
+/* A/B grouped bars with CI */
+function ab() {
+  const box = document.getElementById("c-ab");
+  head(box, "两组留存对比", "误差线为 95% 置信区间", [["第 30 关（对照）", "--s1"], ["第 40 关（实验）", "--s2"]]);
+  const d = rows("10_ab_test"), n = [d[0][1], d[1][1]];
+  const metrics = [["次日留存", 2, D.stats.retention_1], ["7 日留存", 3, D.stats.retention_7]];
+  const W = 760, H = 230, m = {l: 40, r: 8, t: 14, b: 30}, ih = H - m.t - m.b;
+  const svg = el("svg", {viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "次日留存 44.82% 对 44.23%，7 日留存 19.02% 对 18.20%"}, box);
+  const max = 50;
+  for (let i = 0; i <= 5; i++) { const v = i * 10, y = m.t + ih - ih * v / max; el("line", {x1: m.l, x2: W - m.r, y1: y, y2: y, class: "grid"}, svg); txt(svg, m.l - 6, y + 4, v + "%", {"text-anchor": "end"}); }
+  const gw = (W - m.l - m.r) / 2;
+  metrics.forEach((mt, j) => {
+    const gx = m.l + j * gw;
+    txt(svg, gx + gw / 2, H - 8, mt[0] + "  ·  p = " + mt[2].p, {"text-anchor": "middle", class: "strong"});
+    [0, 1].forEach(k => {
+      const p = d[k][mt[1]] / 100, v = d[k][mt[1]];
+      const bw = 70, x = gx + gw / 2 - bw - 1 + k * (bw + 2), y = m.t + ih - ih * v / max;
+      const bar = roundTopRect(svg, x, y, bw, ih * v / max, 4, css(k ? "--s2" : "--s1"));
+      const se = Math.sqrt(p * (1 - p) / n[k]) * 1.96 * 100;
+      const y1 = m.t + ih - ih * (v + se) / max, y2 = m.t + ih - ih * (v - se) / max, cx = x + bw / 2;
+      el("line", {x1: cx, x2: cx, y1, y2, stroke: css("--ink"), "stroke-width": 1.5}, svg);
+      el("line", {x1: cx - 6, x2: cx + 6, y1, y2: y1, stroke: css("--ink"), "stroke-width": 1.5}, svg);
+      el("line", {x1: cx - 6, x2: cx + 6, y1: y2, y2, stroke: css("--ink"), "stroke-width": 1.5}, svg);
+      txt(svg, cx, y1 - 6, v.toFixed(2) + "%", {"text-anchor": "middle", class: "val"});
+      bindTip(bar, `<b>${k ? "第 40 关" : "第 30 关"} · ${mt[0]}</b><br>${v.toFixed(2)}%（±${se.toFixed(2)}）<br>${fmt(n[k])} 名玩家`);
+    });
+  });
+}
+
+function boot() {
+  const box = document.getElementById("c-boot");
+  const h = D.stats.d7_boot_hist;
+  head(box, "7 日留存差异的 bootstrap 分布", `重抽样 3,000 次 · 第 30 关更好的概率 ${(D.stats.d7_bootstrap.prob_gate30_better * 100).toFixed(1)}%`);
+  const W = 380, H = 190, m = {l: 10, r: 10, t: 10, b: 28}, ih = H - m.t - m.b, iw = W - m.l - m.r;
+  const svg = el("svg", {viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "bootstrap 差异分布全部位于 0 的右侧"}, box);
+  const lo = Math.min(-0.2, h.edges[0]), hi = h.edges[h.edges.length - 1];
+  const sx = v => m.l + iw * (v - lo) / (hi - lo);
+  const max = Math.max(...h.counts);
+  h.counts.forEach((c, i) => {
+    const x = sx(h.edges[i]) + 1, w = sx(h.edges[i + 1]) - sx(h.edges[i]) - 2, hh = ih * c / max;
+    const r = roundTopRect(svg, x, m.t + ih - hh, Math.max(w, 1), hh, 2, css("--s1"));
+    bindTip(r, `差异 ${h.edges[i].toFixed(2)} 至 ${h.edges[i + 1].toFixed(2)} 个百分点<br>${c} 次`);
+  });
+  el("line", {x1: sx(0), x2: sx(0), y1: m.t, y2: m.t + ih, stroke: css("--crit"), "stroke-width": 1.5, "stroke-dasharray": "4 3"}, svg);
+  txt(svg, sx(0) + 4, m.t + 10, "差异 = 0", {class: "val"});
+  el("line", {x1: m.l, x2: W - m.r, y1: m.t + ih, y2: m.t + ih, class: "axis"}, svg);
+  [0, 0.5, 1, 1.5].filter(v => v <= hi).forEach(v => txt(svg, sx(v), H - 10, v.toFixed(1), {"text-anchor": "middle"}));
+  txt(svg, W - m.r, H - 10, "百分点", {"text-anchor": "end"});
+}
+
+function funnel() {
+  const box = document.getElementById("c-funnel");
+  head(box, "参与度漏斗：一周内玩到第 N 局的玩家比例", "两组几乎重合", [["第 30 关（对照）", "--s1"], ["第 40 关（实验）", "--s2"]]);
+  const d = rows("11_ab_engagement_funnel");
+  const stages = ["安装", "≥1 局", "≥10 局", "≥30 局", "≥40 局", "≥100 局"];
+  const W = 760, H = 240, m = {l: 44, r: 70, t: 14, b: 30}, ih = H - m.t - m.b, iw = W - m.l - m.r;
+  const svg = el("svg", {viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "两组参与度漏斗曲线几乎重合"}, box);
+  for (let i = 0; i <= 4; i++) { const v = i * 25, y = m.t + ih - ih * v / 100; el("line", {x1: m.l, x2: m.l + iw, y1: y, y2: y, class: "grid"}, svg); txt(svg, m.l - 6, y + 4, v + "%", {"text-anchor": "end"}); }
+  const sx = i => m.l + iw * i / (stages.length - 1);
+  stages.forEach((s, i) => txt(svg, sx(i), H - 8, s, {"text-anchor": "middle"}));
+  [0, 1].forEach(k => {
+    const r = d[k], vals = r.slice(1).map(v => 100 * v / r[1]);
+    const pts = vals.map((v, i) => [sx(i), m.t + ih - ih * v / 100]);
+    el("polyline", {points: pts.map(p => p.join(",")).join(" "), fill: "none", stroke: css(k ? "--s2" : "--s1"), "stroke-width": 2, "stroke-linejoin": "round"}, svg);
+    pts.forEach((p, i) => { const c = el("circle", {cx: p[0], cy: p[1], r: 4, fill: css(k ? "--s2" : "--s1"), stroke: css("--surface"), "stroke-width": 2}, svg); });
+    txt(svg, pts[5][0] + 8, pts[5][1] + (k ? 12 : -4), (k ? "第 40 关 " : "第 30 关 ") + vals[5].toFixed(1) + "%", {class: "val"});
+  });
+  stages.forEach((s, i) => {
+    const hit = el("rect", {x: sx(i) - iw / 10, y: m.t, width: iw / 5, height: ih, class: "hit"}, svg);
+    const a = 100 * d[0][i + 1] / d[0][1], b = 100 * d[1][i + 1] / d[1][1];
+    bindTip(hit, `<b>${s}</b><br>第 30 关 ${a.toFixed(1)}%（${fmt(d[0][i + 1])} 人）<br>第 40 关 ${b.toFixed(1)}%（${fmt(d[1][i + 1])} 人）`);
+  });
+}
+
+/* SQL browser */
+function sqlUI() {
+  const names = {"01_monthly_growth": "月度订单与新老客", "02_fulfilment_funnel": "订单履约漏斗", "03_repeat_rate": "复购用户占比", "04_time_to_second": "第二单间隔分布", "05_cohort_retention": "新客 cohort 留存", "06_late_vs_review": "延迟送达与评分", "07_first_experience_repeat": "首单体验与复购", "08_state_breakdown": "分州履约体验", "09_category_repeat": "首单品类与复购", "10_ab_test": "A/B 实验留存对比", "11_ab_engagement_funnel": "A/B 参与度漏斗", "12_region_rollup": "五大区汇总", "00_base": "基础视图（订单宽表）"};
+  const keys = ["00_base", ...Object.keys(D.results)];
+  const list = document.getElementById("sql-list"), pane = document.getElementById("sql-pane");
+  const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const kw = /\b(SELECT|FROM|WHERE|GROUP BY|ORDER BY|JOIN|LEFT JOIN|USING|WITH|AS|CASE|WHEN|THEN|ELSE|END|AND|OR|NOT|IN|IS|NULL|COUNT|SUM|AVG|MIN|MAX|MEDIAN|ROUND|FILTER|DISTINCT|OVER|PARTITION BY|ROW_NUMBER|INTERVAL|HAVING|UNION ALL|CREATE OR REPLACE VIEW|ON|CAST|LIMIT)\b/g;
+  const hl = s => esc(s).split("\n").map(line => { const i = line.indexOf("--"); const code = i >= 0 ? line.slice(0, i) : line, com = i >= 0 ? line.slice(i) : ""; return code.replace(kw, '<span class="k">$1</span>') + (com ? `<span class="c">${com}</span>` : ""); }).join("\n");
+  function show(k) {
+    list.querySelectorAll("button").forEach(b => b.setAttribute("aria-selected", b.dataset.k === k));
+    const sql = k === "00_base" ? D.base : D.results[k].sql;
+    let html = `<pre class="code">${hl(sql.trim())}</pre><button class="copy" id="copy-sql">复制 SQL</button><span id="copy-msg" class="note" style="margin-left:10px"></span>`;
+    if (k !== "00_base") { const r = D.results[k]; html += `<div class="sql-result" style="margin-top:10px"><table><thead><tr>${r.cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${r.rows.map(row => `<tr>${row.map(v => `<td>${v === null ? "NULL" : typeof v === "number" ? (Number.isInteger(v) ? fmt(v) : v) : esc(String(v))}</td>`).join("")}</tr>`).join("")}</tbody></table></div><p class="note">${r.rows.length} 行结果</p>`; }
+    else html += `<p class="note">把每笔订单整理成一行：客户唯一 ID、州、金额、配送天数、是否延迟、评分，并给每个用户的订单按时间编号。后面所有查询都基于这两个视图。</p>`;
+    pane.innerHTML = html;
+    document.getElementById("copy-sql").onclick = async () => { try { await navigator.clipboard.writeText(sql.trim()); document.getElementById("copy-msg").textContent = "已复制"; } catch (e) { document.getElementById("copy-msg").textContent = "浏览器不允许复制，请手动选中文本"; } };
+  }
+  list.innerHTML = keys.map(k => `<button role="tab" data-k="${k}" aria-selected="false"><span class="f">${k.split("_")[0]}.sql</span>${names[k]}</button>`).join("");
+  list.querySelectorAll("button").forEach(b => b.onclick = () => show(b.dataset.k));
+  show("05_cohort_retention");
+  if (location.hash === "#print") {
+    document.querySelector(".sql-ui").innerHTML = keys.map(k => { show(k); return `<div style="break-inside:avoid-page;margin-bottom:18px"><h3>${k}.sql · ${names[k]}</h3>${pane.innerHTML.replace(/<button class="copy"[\s\S]*$/, "")}</div>`; }).join("");
+    document.querySelector(".sql-ui").style.display = "block";
+      }
+}
+
+function drawAll() { monthly(); cohort(); late(); firstexp(); category(); ab(); boot(); funnel(); }
+drawAll(); regionTables(); sqlUI();
+const mo = new MutationObserver(drawAll); mo.observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawAll);
+</script>
+</body>
+</html>
